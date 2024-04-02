@@ -3,7 +3,7 @@ from ANN.Layer import Layer
 from typing import List
 import numpy as np
 
-rng = np.random.default_rng(seed=None)
+rng = np.random.default_rng(seed=2024)
 
 class Model:
     def __init__(self):
