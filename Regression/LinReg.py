@@ -1,4 +1,5 @@
 import numpy as np
+from util.util import util
 from Regression.DTO.LinRegResult import LinRegResult
 
 rng = np.random.default_rng(seed=2024)
@@ -20,13 +21,13 @@ class LinReg:
         params = LinReg.__init_params(train_x.shape[1])
         for i in range(epoch):
             prediction = LinReg.__forward_propagation(params, train_x)
-            grad = LinReg.__mse_gradient(train_y, prediction)
+            grad = util.mse_gradient(train_y, prediction)
             params = LinReg.__backward_propagation(params, train_x, learning_rate, grad)
-            loss = LinReg.__mse(train_y, prediction)
+            loss = util.mse(train_y, prediction)
             losses.append(loss)
             if i % 100 == 0:
                 prediction = LinReg.__forward_propagation(params, vaild_x)
-                valid_loss = LinReg.__mse(valid_y, prediction)
+                valid_loss = util.mse(valid_y, prediction)
                 print(f"Epoch {i}\nloss: {losses[i]} - val_loss: {valid_loss}")
         return LinRegResult(slopes=params[0], intercept=params[1], losses=losses)
     
@@ -51,14 +52,6 @@ class LinReg:
         params[1] -= b_gradient * learning_rate
         
         return params
-    
-    @staticmethod
-    def __mse(actual, predicted):
-        return np.mean((predicted-actual)**2)
-    
-    @staticmethod
-    def __mse_gradient(actual, predicted):
-        return 2*(predicted-actual)
     
     @staticmethod
     def __calculate_essentials(x_vals, y_vals):
