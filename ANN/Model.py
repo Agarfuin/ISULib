@@ -10,12 +10,12 @@ class Model:
     def __init__(self):
         self.layers: List[Layer] = []
     
-    def add_layer(self, num_of_neurons=0, activation='sigmoid'):
-        layer = self.__create_layer(num_of_neurons, activation)
+    def add_layer(self, num_of_neurons=0, activation_func='sigmoid'):
+        layer = self.__create_layer(num_of_neurons, activation_func)
         self.layers.append(layer)
         print(f"Dense layer added with:\tNeurons: {len(layer.neurons)}\tActivation: {layer.activation_func}\tParam: {layer.param}")
         
-    def fit(self, x_train, y_train, epochs, batch_size, learning_rate):
+    def fit(self, x_train, y_train, epochs, batch_size, learning_rate, x_valid=None, y_valid=None):
         for epoch in range(epochs):
             epoch_loss = []
             for i in range(0, x_train.shape[0], batch_size):
@@ -23,11 +23,16 @@ class Model:
                 y_batch = y_train[i:(i+batch_size)]
                 batch, hidden = self.__forward_propagation(x_batch)
                 
-                loss = util.mse_gradient(batch, y_batch)
+                loss = util.mse_gradient(y_batch, batch)
                 epoch_loss.append(np.mean(loss ** 2))
                 
-                for _ in self.layers:
-                    self.__back_propagation(hidden, loss, learning_rate)
+                self.__back_propagation(hidden, loss, learning_rate)
+            
+            if x_valid is not None and y_valid is not None:
+                valid_preds, _ = self.__forward_propagation(x_valid)
+                print(f"Epoch: {epoch} Train MSE: {np.mean(epoch_loss)} Valid MSE: {np.mean(util.mse(valid_preds, y_valid))}")
+            else:
+                print(f"Epoch: {epoch} Train MSE: {np.mean(epoch_loss)}")
         
     def summary(self):
         data = [["Layers", "Neurons", "Param"]]
@@ -42,19 +47,6 @@ class Model:
         print("=".join("=" * width for width in column_widths))
         print(f"Total params: {sum(layer.param for layer in self.layers)}")
         print("-".join("-" * width for width in column_widths))
-        
-    # TODO: COMPLETE BACK PROPAGATION
-    def test_back_prop(self, hidden, grad, lr):
-        for index in range(len(self.layers)-1, 0, -1):
-            if index != len(self.layers) - 1:
-                grad = np.multiply(grad, np.heaviside(hidden[index+1], 0))
-                
-            w_grad = hidden[index].T @ grad
-            b_grad = np.mean(grad, axis=0)
-            
-            self.layers[index].set_weights(self.layers[index].get_weights()-(w_grad*lr))
-            self.layers[index].set_biases(self.layers[index].get_biases()-(b_grad*lr))
-            grad = grad @ self.layers[index].get_weights().T
             
     def __sigmoid(self, x):
         return 1/(1+np.exp(-x))
@@ -62,44 +54,46 @@ class Model:
     def __relu(self, x):
         return np.maximum(x, 0)
     
-    def __create_layer(self, num_of_neurons, activation):
+    def __softmax(self, x):
+        exps = np.exp(x - np.max(x))
+        return exps / np.sum(exps, axis=0)
+    
+    def __create_layer(self, num_of_neurons, activation_func):
         if num_of_neurons <= 0:
             raise TypeError("Number of neurons have to be greater than 0")
-        if activation!='sigmoid' and activation!='relu':
+        if activation_func!='sigmoid' and activation_func!='relu' and activation_func!='softmax':
             raise TypeError("Pick an appropriate activation function")
-        
-        neurons = []
-        
-        for _ in range(num_of_neurons):
-            if not self.layers:
-                weights = None
-            else:
-                num_weights = len(self.layers[-1].neurons)
-                weights = rng.random(num_weights) - 0.5
-                
-            neurons.append(Neuron(weights=weights))
 
+        neurons = []
+        for _ in range(num_of_neurons):
+            weights = None
+            neurons.append(Neuron(weights=weights))
+            
         if len(self.layers) < 1:
-            return Layer(neurons, activation, 0)
+            return Layer(neurons, activation_func, 0)
         else:
-            param = len(self.layers[-1].neurons)*len(neurons)+len(neurons)
-            return Layer(neurons, activation, param)
+            for neuron in self.layers[-1].neurons:
+                neuron.weights = rng.random(num_of_neurons) - 0.5
+            param = len(self.layers[-1].neurons)*num_of_neurons+num_of_neurons
+            return Layer(neurons, activation_func, param)
         
     def __forward_propagation(self, batch):
         if not isinstance(batch, np.ndarray):
             batch = np.array(batch)
         hidden = [batch.copy()]
-        for layer in self.layers[1:]:
+        for index, layer in enumerate(self.layers[:-1]):
             layer_weights = layer.get_weights()
-            layer_biases = layer.get_biases()
-            batch = np.matmul(batch, layer_weights.T) + layer_biases
+            layer_biases = self.layers[index+1].get_biases()
+            batch = np.matmul(batch, layer_weights) + layer_biases
             if layer.activation_func == "sigmoid":
                 batch = self.__sigmoid(batch)
             elif layer.activation_func == "relu":
                 batch = self.__relu(batch)
+            elif layer.activation_func == "softmax":
+                batch = self.__softmax(batch)
             else:
-                raise TypeError(f"Activation function is not suitable.\nNeeded: sigmoid, relu\nGiven:{layer.activation_func}")
-            layer.set_activations(batch[0])
+                raise TypeError(f"Activation function is not suitable.\nNeeded: sigmoid, relu, softmax\nGiven:{layer.activation_func}")
+            self.layers[index+1].set_activations(batch[0])
             hidden.append(batch.copy())
         return batch, hidden
             
@@ -107,12 +101,12 @@ class Model:
         for index in range(len(self.layers)-1, -1, -1):
             if index != len(self.layers) - 1:
                 grad = np.multiply(grad, np.heaviside(hidden[index+1], 0))
-                
+            
             w_grad = hidden[index].T @ grad
             b_grad = np.mean(grad, axis=0)
             
-            self.layers[index].set_weights(self.layers[index].get_weights()-(w_grad*lr))
-            self.layers[index].set_biases(self.layers[index].get_biases()-(b_grad*lr))
-            print(grad.shape)
-            print(self.layers[index].get_weights().shape)
-            grad = grad @ self.layers[index].get_weights()
+            if index != 0:
+                self.layers[index].set_biases(self.layers[index].get_biases()-(b_grad*lr))
+            if index != len(self.layers) - 1:
+                self.layers[index].set_weights(self.layers[index].get_weights()-(w_grad*lr))
+                grad = grad @ self.layers[index].get_weights().T

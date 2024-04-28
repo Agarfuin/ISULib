@@ -1,11 +1,13 @@
 from Regression.LinReg import LinReg
-import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-from sklearn import linear_model
 from ANN.Model import Model
 from util.util import util
 from sklearn.preprocessing import StandardScaler
+import tensorflow as tf
+import keras
+
+#####   CAR DATA MULTIPLE REGRESSION    #####
 
 # df = pd.read_csv("Datasets/Car_Data.csv")
 
@@ -44,6 +46,8 @@ from sklearn.preprocessing import StandardScaler
 
 
 
+#####   CLEAN WEATHER NEURAL NETWORK    #####
+
 data = pd.read_csv("./Datasets/clean_weather.csv", index_col=0)
 data = data.ffill()
 
@@ -63,4 +67,32 @@ model.add_layer(10, 'relu')
 model.add_layer(10, 'relu')
 model.add_layer(1, 'relu')
 
-model.fit(train_x, train_y, 1, 4, 1e-6)
+model.summary()
+
+model.fit(train_x, train_y, 5, 4, 1e-6)
+
+
+
+
+#####   MNIST NEURAL NETWORK    #####
+
+# mnist = tf.keras.datasets.mnist
+# (x_train, y_train), (x_test, y_test) = mnist.load_data()
+# temp = []
+# for i in range(len(y_train)):
+#     temp.append(keras.utils.to_categorical(y_train[i], num_classes=10))
+# y_train = np.array(temp)
+# # Convert y_test into one-hot format
+# temp = []
+# for i in range(len(y_test)):    
+#     temp.append(keras.utils.to_categorical(y_test[i], num_classes=10))
+# y_test = np.array(temp)
+
+# x_train = x_train.reshape(60000, 784)
+
+# model = Model()
+# model.add_layer(784)
+# model.add_layer(5, 'relu')
+# model.add_layer(10, 'softmax')
+# model.summary()
+# model.fit(x_train, y_train, 1, 5, 1e-6)
