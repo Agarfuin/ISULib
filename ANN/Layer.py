@@ -24,8 +24,8 @@ class Layer:
             neuron.bias = new_biases[index]
             
     def get_activations(self):
-        return np.array([[neuron.activation for neuron in self.neurons]])
+        return np.array([neuron.activation for neuron in self.neurons]).T
     
     def set_activations(self, new_activations):
         for index, neuron in enumerate(self.neurons):
-            neuron.activation = new_activations[index]
+            neuron.activation = new_activations.T[index]

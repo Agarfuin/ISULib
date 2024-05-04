@@ -21,7 +21,8 @@ class Model:
             for i in range(0, x_train.shape[0], batch_size):
                 x_batch = x_train[i:(i+batch_size)]
                 y_batch = y_train[i:(i+batch_size)]
-                batch, hidden = self.__forward_propagation(x_batch)
+                batch = self.__forward_propagation(x_batch)
+                hidden = self.__get_hidden()
                 
                 loss = util.mse_gradient(y_batch, batch)
                 epoch_loss.append(np.mean(loss ** 2))
@@ -29,7 +30,7 @@ class Model:
                 self.__back_propagation(hidden, loss, learning_rate)
             
             if x_valid is not None and y_valid is not None:
-                valid_preds, _ = self.__forward_propagation(x_valid)
+                valid_preds = self.__forward_propagation(x_valid)
                 print(f"Epoch: {epoch} Train MSE: {np.mean(epoch_loss)} Valid MSE: {np.mean(util.mse(valid_preds, y_valid))}")
             else:
                 print(f"Epoch: {epoch} Train MSE: {np.mean(epoch_loss)}")
@@ -80,7 +81,7 @@ class Model:
     def __forward_propagation(self, batch):
         if not isinstance(batch, np.ndarray):
             batch = np.array(batch)
-        hidden = [batch.copy()]
+        self.layers[0].set_activations(batch)
         for index, layer in enumerate(self.layers[:-1]):
             layer_weights = layer.get_weights()
             layer_biases = self.layers[index+1].get_biases()
@@ -93,9 +94,8 @@ class Model:
                 batch = self.__softmax(batch)
             else:
                 raise TypeError(f"Activation function is not suitable.\nNeeded: sigmoid, relu, softmax\nGiven:{layer.activation_func}")
-            self.layers[index+1].set_activations(batch[0])
-            hidden.append(batch.copy())
-        return batch, hidden
+            self.layers[index+1].set_activations(batch)
+        return batch
             
     def __back_propagation(self, hidden, grad, lr):
         for index in range(len(self.layers)-1, -1, -1):
@@ -110,3 +110,6 @@ class Model:
             if index != len(self.layers) - 1:
                 self.layers[index].set_weights(self.layers[index].get_weights()-(w_grad*lr))
                 grad = grad @ self.layers[index].get_weights().T
+                
+    def __get_hidden(self):
+        return [layer.get_activations() for layer in self.layers]

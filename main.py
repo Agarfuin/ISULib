@@ -4,8 +4,8 @@ import numpy as np
 from ANN.Model import Model
 from util.util import util
 from sklearn.preprocessing import StandardScaler
-import tensorflow as tf
-import keras
+# import tensorflow as tf
+# import keras
 
 #####   CAR DATA MULTIPLE REGRESSION    #####
 
@@ -69,7 +69,7 @@ model.add_layer(1, 'relu')
 
 model.summary()
 
-model.fit(train_x, train_y, 5, 4, 1e-6)
+model.fit(train_x, train_y, 5, 4, 1e-6, valid_x, valid_y)
 
 
 
