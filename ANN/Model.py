@@ -2,6 +2,7 @@ from ANN.Neuron import Neuron
 from ANN.Layer import Layer
 from util.util import util
 from typing import List
+from ANN.DTO.ModelResult import ModelResult
 import numpy as np
 
 rng = np.random.default_rng(seed=2024)
@@ -34,6 +35,7 @@ class Model:
                 print(f"Epoch: {epoch} Train MSE: {np.mean(epoch_loss)} Valid MSE: {np.mean(util.mse(valid_preds, y_valid))}")
             else:
                 print(f"Epoch: {epoch} Train MSE: {np.mean(epoch_loss)}")
+        return ModelResult(self.layers)
         
     def summary(self):
         data = [["Layers", "Neurons", "Param"]]
@@ -48,16 +50,6 @@ class Model:
         print("=".join("=" * width for width in column_widths))
         print(f"Total params: {sum(layer.param for layer in self.layers)}")
         print("-".join("-" * width for width in column_widths))
-            
-    def __sigmoid(self, x):
-        return 1/(1+np.exp(-x))
-
-    def __relu(self, x):
-        return np.maximum(x, 0)
-    
-    def __softmax(self, x):
-        exps = np.exp(x - np.max(x))
-        return exps / np.sum(exps, axis=0)
     
     def __create_layer(self, num_of_neurons, activation_func):
         if num_of_neurons <= 0:
@@ -87,11 +79,11 @@ class Model:
             layer_biases = self.layers[index+1].get_biases()
             batch = np.matmul(batch, layer_weights) + layer_biases
             if layer.activation_func == "sigmoid":
-                batch = self.__sigmoid(batch)
+                batch = util.sigmoid(batch)
             elif layer.activation_func == "relu":
-                batch = self.__relu(batch)
+                batch = util.relu(batch)
             elif layer.activation_func == "softmax":
-                batch = self.__softmax(batch)
+                batch = util.softmax(batch)
             else:
                 raise TypeError(f"Activation function is not suitable.\nNeeded: sigmoid, relu, softmax\nGiven:{layer.activation_func}")
             self.layers[index+1].set_activations(batch)
@@ -105,9 +97,8 @@ class Model:
             w_grad = hidden[index].T @ grad
             b_grad = np.mean(grad, axis=0)
             
-            if index != 0:
-                self.layers[index].set_biases(self.layers[index].get_biases()-(b_grad*lr))
             if index != len(self.layers) - 1:
+                self.layers[index+1].set_biases(self.layers[index+1].get_biases()-(b_grad*lr))
                 self.layers[index].set_weights(self.layers[index].get_weights()-(w_grad*lr))
                 grad = grad @ self.layers[index].get_weights().T
                 

@@ -4,8 +4,8 @@ import numpy as np
 from ANN.Model import Model
 from util.util import util
 from sklearn.preprocessing import StandardScaler
-# import tensorflow as tf
-# import keras
+import tensorflow as tf
+import matplotlib.pyplot as plt
 
 #####   CAR DATA MULTIPLE REGRESSION    #####
 
@@ -48,51 +48,68 @@ from sklearn.preprocessing import StandardScaler
 
 #####   CLEAN WEATHER NEURAL NETWORK    #####
 
-data = pd.read_csv("./Datasets/clean_weather.csv", index_col=0)
-data = data.ffill()
+# data = pd.read_csv("./Datasets/clean_weather.csv", index_col=0)
+# data = data.ffill()
 
-PREDICTORS = ["tmax", "tmin", "rain"]
-TARGET = "tmax_tomorrow"
+# PREDICTORS = ["tmax", "tmin", "rain"]
+# TARGET = "tmax_tomorrow"
 
-scaler = StandardScaler()
-data[PREDICTORS] = scaler.fit_transform(data[PREDICTORS])
+# scaler = StandardScaler()
+# data[PREDICTORS] = scaler.fit_transform(data[PREDICTORS])
 
-split_data = np.split(data, [int(.7 * len(data)), int(.85 * len(data))])
-(train_x, train_y), (valid_x, valid_y), (test_x, test_y) = [[d[PREDICTORS].to_numpy(), d[[TARGET]].to_numpy()] for d in
-                                                            split_data]
+# split_data = np.split(data, [int(.7 * len(data)), int(.85 * len(data))])
+# (train_x, train_y), (valid_x, valid_y), (test_x, test_y) = [[d[PREDICTORS].to_numpy(), d[[TARGET]].to_numpy()] for d in
+#                                                             split_data]
 
-model = Model()
-model.add_layer(3)
-model.add_layer(10, 'relu')
-model.add_layer(10, 'relu')
-model.add_layer(1, 'relu')
+# model = Model()
+# model.add_layer(3)
+# model.add_layer(10, 'relu')
+# model.add_layer(10, 'relu')
+# model.add_layer(1, 'relu')
 
-model.summary()
+# model.summary()
 
-model.fit(train_x, train_y, 5, 4, 1e-6, valid_x, valid_y)
+# model.fit(train_x, train_y, 5, 4, 1e-6, valid_x, valid_y)
 
 
 
 
 #####   MNIST NEURAL NETWORK    #####
 
-# mnist = tf.keras.datasets.mnist
-# (x_train, y_train), (x_test, y_test) = mnist.load_data()
-# temp = []
-# for i in range(len(y_train)):
-#     temp.append(keras.utils.to_categorical(y_train[i], num_classes=10))
-# y_train = np.array(temp)
-# # Convert y_test into one-hot format
-# temp = []
-# for i in range(len(y_test)):    
-#     temp.append(keras.utils.to_categorical(y_test[i], num_classes=10))
-# y_test = np.array(temp)
+mnist = tf.keras.datasets.mnist
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
+temp = []
+for i in range(len(y_train)):
+    temp.append(tf.keras.utils.to_categorical(y_train[i], num_classes=10))
+y_train = np.array(temp)
+# Convert y_test into one-hot format
+temp = []
+for i in range(len(y_test)):    
+    temp.append(tf.keras.utils.to_categorical(y_test[i], num_classes=10))
+y_test = np.array(temp)
 
-# x_train = x_train.reshape(60000, 784)
+x_train = x_train / 255.0
+x_test = x_test / 255.0
 
-# model = Model()
-# model.add_layer(784)
-# model.add_layer(5, 'relu')
-# model.add_layer(10, 'softmax')
-# model.summary()
-# model.fit(x_train, y_train, 1, 5, 1e-6)
+
+x_train = x_train.reshape(60000, 784)
+x_test_flat = x_test.reshape(10000, 784)
+
+model = Model()
+model.add_layer(784)
+model.add_layer(16, 'relu')
+model.add_layer(16, 'relu')
+model.add_layer(10, 'softmax')
+model.summary()
+history = model.fit(x_train, y_train, 4, 5, 1e-6)
+
+def test_model(history, x_test, x_test_flat, y_test):
+    for _ in range(10):
+        print("Enter an index")
+        index = int(input())
+        result = np.argmax(history.predict(x_test_flat[index]))
+        plt.title(f"Predicted: {result}, Actual: {np.argmax(y_test[index])}")
+        plt.imshow(x_test[index])
+        plt.show()
+        
+test_model(history, x_test, x_test_flat, y_test)
