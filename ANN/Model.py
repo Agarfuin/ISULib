@@ -16,7 +16,7 @@ class Model:
         self.layers.append(layer)
         print(f"Dense layer added with:\tNeurons: {len(layer.neurons)}\tActivation: {layer.activation_func}\tParam: {layer.param}")
         
-    def fit(self, x_train, y_train, epochs, batch_size, learning_rate, x_valid=None, y_valid=None):
+    def fit(self, x_train, y_train, x_test, y_test, epochs, batch_size, learning_rate, x_valid=None, y_valid=None):
         for epoch in range(epochs):
             epoch_loss = []
             for i in range(0, x_train.shape[0], batch_size):
@@ -29,12 +29,16 @@ class Model:
                 epoch_loss.append(np.mean(loss ** 2))
                 
                 self.__back_propagation(hidden, loss, learning_rate)
+                
+            accuracy = self.__calculate_accuracy(ModelResult(self.layers), x_test, y_test)
             
             if x_valid is not None and y_valid is not None:
                 valid_preds = self.__forward_propagation(x_valid)
-                print(f"Epoch: {epoch} Train MSE: {np.mean(epoch_loss)} Valid MSE: {np.mean(util.mse(valid_preds, y_valid))}")
+                val_loss = util.mse(valid_preds, y_valid)
+                val_accuracy = self.__calculate_accuracy(ModelResult(self.layers), x_valid, y_valid)
+                print(f"Epoch: {epoch} - Train MSE: {np.mean(epoch_loss):.4f} - Accuracy: {accuracy:.4f} - Valid MSE: {np.mean(val_loss):.4f} - Valid Accuracy: {val_accuracy:.4f}")
             else:
-                print(f"Epoch: {epoch} Train MSE: {np.mean(epoch_loss)}")
+                print(f"Epoch: {epoch} - Train MSE: {np.mean(epoch_loss):.4f} - Accuracy: {accuracy:.4f}")
         return ModelResult(self.layers)
         
     def summary(self):
@@ -50,6 +54,15 @@ class Model:
         print("=".join("=" * width for width in column_widths))
         print(f"Total params: {sum(layer.param for layer in self.layers)}")
         print("-".join("-" * width for width in column_widths))
+        
+    def __calculate_accuracy(self, model, x_test, y_test):
+        correct_guess = 0
+        for (x, y) in zip(x_test, y_test):
+            guess = np.argmax(model.predict(x))
+            actual = np.argmax(y)
+            if guess == actual:
+                correct_guess+=1
+        return correct_guess / len(x_test)
     
     def __create_layer(self, num_of_neurons, activation_func):
         if num_of_neurons <= 0:

@@ -101,7 +101,7 @@ model.add_layer(16, 'relu')
 model.add_layer(16, 'relu')
 model.add_layer(10, 'softmax')
 model.summary()
-history = model.fit(x_train, y_train, 4, 5, 1e-6)
+history = model.fit(x_train, y_train, x_test_flat, y_test, 4, 5, 1e-4)
 
 def test_model(history, x_test, x_test_flat, y_test):
     for _ in range(10):
